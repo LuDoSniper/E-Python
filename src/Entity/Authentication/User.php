@@ -2,7 +2,11 @@
 
 namespace App\Entity\Authentication;
 
-use App\Repository\UserRepository;
+use App\Entity\Exercise\Exercise;
+use App\Repository\Authentication\UserRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -19,15 +23,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 180)]
     private ?string $username = null;
 
-    /**
-     * @var list<string> The user roles
-     */
-    #[ORM\Column]
-    private array $roles = [];
-
-    /**
-     * @var string The hashed password
-     */
     #[ORM\Column]
     private ?string $password = null;
 
@@ -35,6 +30,25 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $display_name = null;
+
+    /**
+     * @var Collection<int, Exercise>
+     */
+    #[ORM\ManyToMany(targetEntity: Exercise::class, mappedBy: 'user_ids')]
+    private Collection $exercise_ids;
+
+
+    #[ORM\Column]
+    private ?array $roles = [];
+
+    // Construct
+
+    public function __construct()
+    {
+        $this->exercise_ids = new ArrayCollection();
+    }
+
+    // Getter - Setter
 
     public function getId(): ?int
     {
@@ -63,6 +77,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    public function getPassword(): ?string
+    {
+        return $this->password;
+    }
+    public function setPassword(string $password): static
+    {
+        $this->password = $password;
+
+        return $this;
+    }
+
     public function getPlainpassword(): ?string
     {
         return $this->plainpassword;
@@ -73,60 +98,60 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
-     * A visual identifier that represents this user.
-     *
-     * @see UserInterface
+     * @return Collection<int, Exercise>
      */
+    public function getExerciseIds(): Collection
+    {
+        return $this->exercise_ids;
+    }
+    public function addExerciseId(Exercise $exerciseId): static
+    {
+        if (!$this->exercise_ids->contains($exerciseId)) {
+            $this->exercise_ids->add($exerciseId);
+            $exerciseId->addUserId($this);
+        }
+        return $this;
+    }
+    public function removeExerciseId(Exercise $exerciseId): static
+    {
+        if ($this->exercise_ids->removeElement($exerciseId)) {
+            $exerciseId->removeUserId($this);
+        }
+        return $this;
+    }
+
+    public function addRole(string $role): static
+    {
+        if (!in_array($role, $this->getRoles())){
+            $this->roles[] = $role;
+        }
+        return $this;
+    }
+    public function removeRole(string $role): static
+    {
+        if (in_array($role, $this->getRoles())){
+            $this->roles = array_values(array_diff($this->getRoles(), [$role]));
+        }
+        return $this;
+    }
+
+    // Methods
+
     public function getUserIdentifier(): string
     {
         return (string) $this->username;
     }
 
-    /**
-     * @see UserInterface
-     *
-     * @return list<string>
-     */
     public function getRoles(): array
     {
         $roles = $this->roles;
         // guarantee every user at least has ROLE_USER
         $roles[] = 'ROLE_USER';
-
         return array_unique($roles);
     }
 
-    /**
-     * @param list<string> $roles
-     */
-    public function setRoles(array $roles): static
-    {
-        $this->roles = $roles;
-
-        return $this;
-    }
-
-    /**
-     * @see PasswordAuthenticatedUserInterface
-     */
-    public function getPassword(): ?string
-    {
-        return $this->password;
-    }
-
-    public function setPassword(string $password): static
-    {
-        $this->password = $password;
-
-        return $this;
-    }
-
-    /**
-     * @see UserInterface
-     */
     public function eraseCredentials(): void
     {
          $this->setPlainpassword(null);
     }
-
 }
