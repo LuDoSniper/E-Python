@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Form\Type;
+namespace App\Form\Type\Authentication;
 
-use App\Entity\User;
+use App\Entity\Authentication\User;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
